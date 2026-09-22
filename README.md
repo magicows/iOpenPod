@@ -13,6 +13,8 @@
 
 iOpenPod is a free, cross-platform iPod manager and iTunes alternative for Linux, macOS, and Windows enabling FLAC to ALAC auto-conversion, iTunesDB metadata editing, and native podcast syncing. Built on Python and PyQt6, it allows you to browse and edit your iPod library, sync media from your PC, and seamlessly preserve iPod-specific database behaviors.
 
+This branch also adds built-in tools for metadata repair, video downloads, and Tidal video syncing. Each tool feeds completed media into the normal iOpenPod sync workflow.
+
 ![Album Browser](docs/screenshots/hero.webp)
 
 ## Screenshots
@@ -72,6 +74,34 @@ Update installs with the same tool you used to install them.
 
 ---
 
+## Built-in Tools and Plugin Layer
+
+The fork groups optional tools under a small built-in plugin layer. The tools share iOpenPod's device state, cache, and sync handoff while keeping provider-specific code in its own package. Open them from the sidebar after you connect an iPod.
+
+### Track Repair
+
+Track Repair compares an album on the iPod with MusicBrainz or Apple iTunes metadata. Review proposed track-number, title, artist, album-artist, and disc-number changes before writing them to the iPod database. Loose matching can handle release annotations such as remastered-edition suffixes, while the default matcher avoids overwriting existing metadata without an explicit choice.
+
+### Video Sync
+
+Video Sync accepts a video URL, downloads it with [yt-dlp](https://github.com/yt-dlp/yt-dlp), and converts it with FFmpeg to an iPod-compatible H.264 Baseline video with AAC audio. The finished file enters the regular sync queue, so you can review it with the rest of your planned changes.
+
+### Tidal Sync
+
+Tidal Sync uses the `tiddl` command-line client for device-code sign-in, video search, and downloads. FFmpeg prepares the result for iPod playback, and the panel sends it through the same sync queue as Video Sync. Install `tiddl` separately when you want this tool:
+
+```bash
+pip install tiddl
+```
+
+The Tidal service and its account determine which videos the tool can access. Check the service's terms before downloading content.
+
+### Device-specific audio compatibility
+
+iOpenPod can apply an audio profile for older iPod decoders during sync. The current profile targets the 1st-generation iPod Mini, where some modern AAC bitstreams produce severe playback artifacts even though the files decode on a computer. iOpenPod converts those tracks to a conservative 160 kbps, 44.1 kHz AAC format and shows the conversion in Sync Review. The original files stay in your PC library.
+
+---
+
 ## Core Features and Hardware Compatibility
 
 iOpenPod supports the iPod Classic, iPod Mini, and iPod Nano from the 1st through 7th generations. Rockbox works when you enable the Rockbox compatibility settings.
@@ -106,7 +136,7 @@ Before writing changes, iOpenPod shows the planned additions, removals, metadata
 
 ### Customizable transcoding behavior
 
-Settings are available for transcoding, allowing you to specifically decide the encoder and quality of encoding for audio files. The settings are adaptive, showing you only what is available and compatible with your current device, making this an easy process without any prior knowledge about iPod format compatibilities.  
+Settings are available for transcoding, allowing you to choose the encoder and quality for audio files. The settings adapt to the selected device and hide options that the hardware cannot use.
 
 ---
 
@@ -160,6 +190,18 @@ uv run python scripts/dev.py test     # pytest
 See `AGENTS.md` for the full command reference (including architecture checks and agent conventions).
 
 Full human guide: [`docs/DEV.md`](docs/DEV.md).
+
+### Plugin layout
+
+Built-in tools live under [`src/iopenpod/plugins`](src/iopenpod/plugins). Each tool keeps its panel, background work, provider or downloader integration, and media preparation code together. The main window exposes each panel through a small sidebar signal and routes completed files into the existing sync handoff.
+
+To add another built-in tool:
+
+1. Create a package under `src/iopenpod/plugins/<name>`.
+2. Keep network, subprocess, and media work off the Qt main thread.
+3. Export the panel from the package's `__init__.py`.
+4. Add the sidebar signal, page shell, and device-state updates in the main window.
+5. Add focused tests for matching, provider parsing, or transcoding behavior.
 
 ### Contributing
 
