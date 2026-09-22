@@ -104,6 +104,9 @@ from iopenpod.gui.widgets.musicBrowser import MusicBrowser
 from iopenpod.gui.widgets.musicPlayer import MusicPlayerBar
 from iopenpod.gui.widgets.settingsPage import SettingsPage
 from iopenpod.gui.widgets.sidebar import Sidebar
+from iopenpod.plugins.trackrepair import TrackRepairPanel
+from iopenpod.plugins.tidalsync import TidalSyncPanel
+from iopenpod.plugins.videosync import VideoSyncPanel
 from iopenpod.gui.widgets.syncReview import (
     PCFolderDialog,
     SyncReviewWidget,
@@ -774,7 +777,7 @@ class MainWindow(QMainWindow):
         self.musicBrowser.playlistBrowser.trackList.remove_from_ipod_requested.connect(self._onRemoveFromIpod)
 
         self.sidebar = Sidebar()
-        self.sidebar.category_changed.connect(self.musicBrowser.updateCategory)
+        self.sidebar.category_changed.connect(self._on_sidebar_category_changed)
         self.sidebar.device_renamed.connect(self._onDeviceRenamed)
         self.sidebar.eject_requested.connect(self._onEjectDevice)
         self.sidebar.deviceButton.clicked.connect(self.selectDevice)
@@ -785,6 +788,9 @@ class MainWindow(QMainWindow):
         self.sidebar.tag_fixes_requested.connect(self._onIpodTagFixesRequested)
         self.sidebar.scrobble_requested.connect(self._onScrobbleNowRequested)
         self.sidebar.manage_storage_requested.connect(self.showDatabaseStorage)
+        self.sidebar.track_repair_requested.connect(self.showTrackRepair)
+        self.sidebar.video_sync_requested.connect(self.showVideoSync)
+        self.sidebar.tidal_sync_requested.connect(self.showTidalSync)
 
         self.mainContentStack = QStackedWidget()
 
@@ -842,6 +848,34 @@ class MainWindow(QMainWindow):
         self.databaseStorageBrowser.inspect_requested.connect(self._onDatabaseStorageInspect)
         self.databaseStorageBrowser.forensics_requested.connect(self.showITunesDBForensics)
         self.centralStack.addWidget(self.databaseStorageBrowser)  # Index 5
+
+        # Built-in optional tools. They live in the current package and use
+        # the same cache and drop-to-sync seams as the rest of the application.
+        self.trackRepairPage = TrackRepairPanel()
+        self.videoSyncPage = VideoSyncPanel()
+        self.tidalSyncPage = TidalSyncPanel()
+        self.videoSyncPage.files_ready.connect(self._on_files_dropped)
+        self.tidalSyncPage.files_ready.connect(self._on_files_dropped)
+        self.trackRepairPageShell = self._plugin_page_shell(
+            "Repair Metadata",
+            self.trackRepairPage,
+        )
+        self.videoSyncPageShell = self._plugin_page_shell(
+            "Video Sync",
+            self.videoSyncPage,
+        )
+        self.tidalSyncPageShell = self._plugin_page_shell(
+            "Tidal Sync",
+            self.tidalSyncPage,
+        )
+        self.centralStack.addWidget(self.trackRepairPageShell)
+        self.centralStack.addWidget(self.videoSyncPageShell)
+        self.centralStack.addWidget(self.tidalSyncPageShell)
+
+        active_device = getattr(self.device_manager, "discovered_ipod", None)
+        self.trackRepairPage.set_device(active_device)
+        self.videoSyncPage.set_device(active_device)
+        self.tidalSyncPage.set_device(active_device)
 
         # No-device placeholder section (shown in content area; sidebar stays visible)
         self.noDeviceWidget = QWidget()
@@ -906,6 +940,52 @@ class MainWindow(QMainWindow):
         """Show main page and switch content area by device selection state."""
         self._refresh_default_page_state()
         self.centralStack.setCurrentIndex(0)
+
+    def _plugin_page_shell(self, title: str, page: QWidget) -> QWidget:
+        """Wrap a standalone tool page with an explicit route back to the library."""
+        shell = QWidget()
+        layout = QVBoxLayout(shell)
+        layout.setContentsMargins(18, 14, 18, 18)
+        layout.setSpacing(10)
+
+        header = QHBoxLayout()
+        back = QPushButton("← Back to Library")
+        back.setCursor(Qt.CursorShape.PointingHandCursor)
+        back.setStyleSheet(button_css("quiet", "sm"))
+        back.clicked.connect(self._show_default_page)
+        header.addWidget(back, 0, Qt.AlignmentFlag.AlignLeft)
+
+        heading = QLabel(title)
+        heading.setFont(QFont(FONT_FAMILY, Metrics.FONT_XL, QFont.Weight.DemiBold))
+        heading.setStyleSheet(
+            f"color: {paint_css('text.primary')}; background: transparent;"
+        )
+        header.addWidget(heading)
+        header.addStretch(1)
+        layout.addLayout(header)
+        layout.addWidget(page, 1)
+        return shell
+
+    def _on_sidebar_category_changed(self, category: str) -> None:
+        """Return to the library when a library category is selected."""
+        self.musicBrowser.updateCategory(category)
+        self._show_default_page()
+
+    def showTrackRepair(self) -> None:
+        if not self.library_cache.is_ready():
+            QMessageBox.information(
+                self,
+                "Repair Metadata",
+                "Load an iPod library before scanning for repairs.",
+            )
+            return
+        self.centralStack.setCurrentWidget(self.trackRepairPageShell)
+
+    def showVideoSync(self) -> None:
+        self.centralStack.setCurrentWidget(self.videoSyncPageShell)
+
+    def showTidalSync(self) -> None:
+        self.centralStack.setCurrentWidget(self.tidalSyncPageShell)
 
     def _current_player_position(self) -> str:
         try:
@@ -1213,6 +1293,13 @@ class MainWindow(QMainWindow):
         has_device = bool(self.device_manager.device_path)
         self.sidebar.setLibraryTabsVisible(has_device)
         self.sidebar.setTagFixesAvailable(has_device and self.library_cache.is_ready())
+        set_track_repair_available = getattr(
+            self.sidebar,
+            "setTrackRepairAvailable",
+            None,
+        )
+        if set_track_repair_available is not None:
+            set_track_repair_available(has_device and self.library_cache.is_ready())
         if has_device:
             ready = self.library_cache.is_ready()
             self.mainContentStack.setCurrentIndex(0 if ready else 2)
@@ -1339,6 +1426,14 @@ class MainWindow(QMainWindow):
 
     def onDeviceChanged(self, path: str):
         """Handle device selection - start loading data."""
+        active_device = getattr(self.device_manager, "discovered_ipod", None) if path else None
+        for panel in (
+            getattr(self, "trackRepairPage", None),
+            getattr(self, "videoSyncPage", None),
+            getattr(self, "tidalSyncPage", None),
+        ):
+            if panel is not None:
+                panel.set_device(active_device)
         if not path or same_device_path(path, self.device_manager.device_path):
             self._eject_only_device_path = None
             self._eject_only_device_storage = None

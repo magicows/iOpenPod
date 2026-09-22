@@ -932,6 +932,9 @@ class Sidebar(QFrame):
     tag_fixes_requested = pyqtSignal()
     scrobble_requested = pyqtSignal()
     manage_storage_requested = pyqtSignal()
+    track_repair_requested = pyqtSignal()
+    video_sync_requested = pyqtSignal()
+    tidal_sync_requested = pyqtSignal()
 
     # Categories that only make sense on video-capable iPods
     _VIDEO_CATEGORIES = frozenset({"Videos", "Movies", "TV Shows", "Music Videos"})
@@ -1050,6 +1053,27 @@ class Sidebar(QFrame):
         self.tagFixButton.setEnabled(False)
         self.tagFixButton.clicked.connect(self.tag_fixes_requested.emit)
         maintenance_layout.addWidget(self.tagFixButton)
+
+        self.trackRepairButton = SidebarNavButton(
+            "Repair Metadata",
+            icon_name="search",
+        )
+        self.trackRepairButton.setToolTip(
+            "Compare album metadata with MusicBrainz or Apple and preview repairs."
+        )
+        self.trackRepairButton.setEnabled(False)
+        self.trackRepairButton.clicked.connect(self.track_repair_requested.emit)
+        maintenance_layout.addWidget(self.trackRepairButton)
+
+        self.videoSyncButton = SidebarNavButton("Video Sync", icon_name="video")
+        self.videoSyncButton.setToolTip("Download and prepare a video for this iPod.")
+        self.videoSyncButton.clicked.connect(self.video_sync_requested.emit)
+        maintenance_layout.addWidget(self.videoSyncButton)
+
+        self.tidalSyncButton = SidebarNavButton("Tidal Sync", icon_name="cloud")
+        self.tidalSyncButton.setToolTip("Search and prepare Tidal music videos.")
+        self.tidalSyncButton.clicked.connect(self.tidal_sync_requested.emit)
+        maintenance_layout.addWidget(self.tidalSyncButton)
         self.sidebarLayout.addWidget(maintenance_section)
 
         self.sidebarLayout.addSpacing(Design.SIDEBAR_SECTION_GAP)
@@ -1126,6 +1150,7 @@ class Sidebar(QFrame):
         self.device_card.clear()
         self.setTagFixesAvailable(False)
         self.setTagFixCount(0)
+        self.setTrackRepairAvailable(False)
         self.setScrobbleAvailable(False)
         # Show all categories again when no device is selected
         self.setVideoVisible(True)
@@ -1138,6 +1163,9 @@ class Sidebar(QFrame):
 
     def setTagFixesAvailable(self, available: bool) -> None:
         self.tagFixButton.setEnabled(available)
+
+    def setTrackRepairAvailable(self, available: bool) -> None:
+        self.trackRepairButton.setEnabled(bool(available))
 
     def setScrobbleAvailable(
         self,
