@@ -99,6 +99,13 @@ _VALID_LOSSY_ENCODERS: frozenset[str] = frozenset(
 _VALID_QUALITY_LEVELS: frozenset[str] = frozenset({"high", "balanced", "compact"})
 _VALID_BITRATE_MODES: frozenset[str] = frozenset({"cbr", "abr", "vbr", "cvbr"})
 
+# The first-generation iPod mini is unusually sensitive to some otherwise
+# valid AAC-LC bitstreams.  Keep this as a named device profile so the rule is
+# attached to the device capability table rather than scattered through sync
+# planning and UI code.
+LEGACY_AAC_STRICT_PROFILE = "legacy_aac_strict"
+_LEGACY_AAC_BITRATE_KBPS = 160
+
 # Approximate kbps for aac_at VBR quality q0–q14 (for size estimation)
 _AAC_AT_VBR_Q_KBPS: dict[int, int] = {
     0: 256, 1: 240, 2: 224, 3: 192, 4: 176, 5: 160,
@@ -290,6 +297,7 @@ class TranscodePlan:
     music_lossy_cbr_bitrate: int = 192
     vbr_level: int = 4
     spoken_lossy_cbr_bitrate: int = 64
+    compatibility_profile: str = ""
 
     @property
     def is_spoken(self) -> bool:
@@ -306,7 +314,7 @@ class TranscodePlan:
         if self.target == TranscodeTarget.ALAC:
             return "alac"
         if self.target == TranscodeTarget.AAC:
-            return "aac"
+            return f"aac:{self.compatibility_profile}" if self.compatibility_profile else "aac"
         if self.target == TranscodeTarget.MP3:
             return "mp3"
         if self.target in _VIDEO_TRANSCODE_TARGETS:
@@ -420,6 +428,7 @@ def resolve_transcode_plan(
     prefer_lossy: bool | None = None,
     is_spoken_content: bool = False,
     options: TranscodeOptions | None = None,
+    device_info: object | None = None,
 ) -> TranscodePlan:
     """Resolve the full transcode policy for *filepath*.
 
@@ -437,10 +446,12 @@ def resolve_transcode_plan(
         prefer_lossy = options.prefer_lossy
 
     lossy_policy = _resolve_lossy_policy(options)
+    compatibility_profile = device_audio_compatibility_profile(device_info)
     target = get_transcode_target(
         source_path,
         prefer_lossy=prefer_lossy,
         options=options,
+        compatibility_profile=compatibility_profile,
     )
     video_output_muxer = _video_output_muxer(source_path, target)
     normalize_sample_rate = options.normalize_sample_rate
@@ -459,6 +470,29 @@ def resolve_transcode_plan(
     video_audio_bitrate_kbps = None
     if target in {TranscodeTarget.VIDEO_H264, TranscodeTarget.VIDEO_TRANSCODE_AUDIO}:
         video_audio_bitrate_kbps = probe_audio(source_path).bitrate_kbps
+
+    profile_options = options
+    user_lossy_encoder = options.lossy_encoder
+    music_lossy_cbr_bitrate = options.music_lossy_cbr_bitrate
+    normalize_sample_rate = options.normalize_sample_rate
+    if compatibility_profile == LEGACY_AAC_STRICT_PROFILE and target == TranscodeTarget.AAC:
+        # Match the conservative AAC profile known to work on the first-gen
+        # mini.  Keep the selected encoder (FDK/AudioToolbox/native) but force
+        # CBR 160 kbps, CD sample rate, and conservative stereo coding flags.
+        profile_options = replace(
+            options,
+            lossy_encoder="aac",
+            bitrate_mode="cbr",
+            music_lossy_cbr_bitrate=_LEGACY_AAC_BITRATE_KBPS,
+            normalize_sample_rate=True,
+            aac_pns=False,
+            aac_tns=True,
+            aac_ms_stereo=True,
+            aac_intensity_stereo=False,
+        )
+        user_lossy_encoder = "aac"
+        music_lossy_cbr_bitrate = _LEGACY_AAC_BITRATE_KBPS
+        normalize_sample_rate = True
 
     return TranscodePlan(
         source_path=source_path,
@@ -479,12 +513,18 @@ def resolve_transcode_plan(
         video_audio_bitrate_kbps=video_audio_bitrate_kbps,
         video_output_muxer=video_output_muxer,
         lossy_encoder=lossy_policy.encoder,
-        user_lossy_encoder=options.lossy_encoder,
+        user_lossy_encoder=user_lossy_encoder,
         lossy_quality=options.lossy_quality,
-        bitrate_mode=options.bitrate_mode,
-        music_lossy_cbr_bitrate=options.music_lossy_cbr_bitrate,
+        bitrate_mode=profile_options.bitrate_mode,
+        music_lossy_cbr_bitrate=music_lossy_cbr_bitrate,
         vbr_level=options.vbr_level,
         spoken_lossy_cbr_bitrate=options.spoken_lossy_cbr_bitrate,
+        compatibility_profile=(
+            compatibility_profile
+            if compatibility_profile == LEGACY_AAC_STRICT_PROFILE
+            and target == TranscodeTarget.AAC
+            else ""
+        ),
     )
 
 
@@ -1216,6 +1256,61 @@ def _device_supports_alac() -> bool:
     return True
 
 
+def device_audio_compatibility_profile(device_info: object | None = None) -> str:
+    """Return the audio compatibility profile for the selected iPod.
+
+    The explicit device object is preferred during planning so background
+    workers do not depend on process-global device state.  The current-device
+    fallback preserves compatibility for older callers that resolve plans
+    directly.
+    """
+    dev = device_info
+    if dev is None:
+        try:
+            from iopenpod.device import get_current_device
+
+            dev = get_current_device()
+        except Exception:
+            dev = None
+    if dev is None:
+        return ""
+
+    capabilities = getattr(dev, "capabilities", None)
+    profile = str(getattr(capabilities, "audio_compatibility_profile", "") or "").strip().lower()
+    if profile:
+        return profile
+
+    # Accept lightweight device snapshots used by the application and tests.
+    try:
+        from iopenpod.device import capabilities_for_family_gen
+
+        family = str(getattr(dev, "model_family", "") or "")
+        generation = str(getattr(dev, "generation", "") or "")
+        resolved = capabilities_for_family_gen(
+            family,
+            generation,
+            capacity=str(getattr(dev, "capacity", "") or ""),
+            model_number=str(getattr(dev, "model_number", "") or ""),
+        )
+        return str(getattr(resolved, "audio_compatibility_profile", "") or "").strip().lower()
+    except Exception:
+        return ""
+
+
+def requires_device_audio_rewrite(
+    filepath: str | Path,
+    compatibility_profile: str,
+) -> bool:
+    """Return whether a native source needs a device-specific rewrite."""
+    if compatibility_profile != LEGACY_AAC_STRICT_PROFILE:
+        return False
+    suffix = Path(filepath).suffix.lower()
+    if suffix not in {".m4a", ".m4b", ".m4p", ".aac"}:
+        return False
+    props = probe_audio(filepath)
+    return props.probe_ok and props.codec_name.lower() == "aac"
+
+
 def _device_supported_timed_text_codecs() -> frozenset[str]:
     """Return the caption/subtitle codecs verified for the connected iPod.
 
@@ -1268,6 +1363,7 @@ def get_transcode_target(
     *,
     prefer_lossy: bool | None = None,
     options: TranscodeOptions | None = None,
+    compatibility_profile: str = "",
 ) -> TranscodeTarget:
     """Determine the target format for *filepath*.
 
@@ -1335,6 +1431,18 @@ def get_transcode_target(
             return lossy_target
 
         if options.always_encode_lossy and _is_native_lossy_audio(suffix, props):
+            return lossy_target
+
+        if (
+            compatibility_profile == LEGACY_AAC_STRICT_PROFILE
+            and suffix in {".m4a", ".m4b", ".m4p", ".aac"}
+            and props.codec_name.lower() == "aac"
+        ):
+            logger.info(
+                "TRANSCODE: %s needs %s for the selected iPod",
+                Path(filepath).name,
+                compatibility_profile,
+            )
             return lossy_target
 
         if props.exceeds_ipod_limits():
@@ -1810,6 +1918,19 @@ def _build_ffmpeg_command(
     src = str(source_path)
     dst = str(output_path)
     quality, use_mono = _resolve_lossy_runtime(plan)
+    command_options = options
+    if plan.compatibility_profile == LEGACY_AAC_STRICT_PROFILE:
+        command_options = replace(
+            options,
+            lossy_encoder="aac",
+            bitrate_mode="cbr",
+            music_lossy_cbr_bitrate=_LEGACY_AAC_BITRATE_KBPS,
+            normalize_sample_rate=True,
+            aac_pns=False,
+            aac_tns=True,
+            aac_ms_stereo=True,
+            aac_intensity_stereo=False,
+        ).normalized()
 
     if plan.target == TranscodeTarget.ALAC:
         return _cmd_alac(ffmpeg, src, dst, normalize_sr=plan.normalize_sample_rate)
@@ -1822,7 +1943,7 @@ def _build_ffmpeg_command(
             quality,
             normalize_sr=plan.normalize_sample_rate,
             mono=use_mono,
-            options=options,
+            options=command_options,
             encoder=plan.lossy_encoder,
         )
 
@@ -1834,7 +1955,7 @@ def _build_ffmpeg_command(
             quality,
             normalize_sr=plan.normalize_sample_rate,
             mono=use_mono,
-            options=options,
+            options=command_options,
             encoder=plan.lossy_encoder,
         )
 

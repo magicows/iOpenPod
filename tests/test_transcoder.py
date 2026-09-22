@@ -618,6 +618,79 @@ def test_lossy_native_aac_copies_by_default_and_reencodes_when_forced(monkeypatc
     assert get_transcode_target("song.m4a", options=options) == TranscodeTarget.AAC
 
 
+def test_mini_1g_profile_reencodes_native_aac_and_uses_conservative_command(monkeypatch) -> None:
+    monkeypatch.setattr(
+        transcoder_module,
+        "available_aac_encoders",
+        lambda _path=None: {"aac"},
+    )
+    monkeypatch.setattr(transcoder_module, "_best_aac_encoder", lambda _path=None: "aac")
+    monkeypatch.setattr(
+        transcoder_module,
+        "probe_audio",
+        lambda _path: AudioProperties(
+            sample_rate=44100,
+            channels=2,
+            codec_name="aac",
+            profile="LC",
+            probe_ok=True,
+        ),
+    )
+
+    mini_1g = SimpleNamespace(model_family="iPod Mini", generation="1st Gen")
+
+    plan = transcoder_module.resolve_transcode_plan(
+        "song.m4a",
+        options=TranscodeOptions(lossy_encoder="auto"),
+        device_info=mini_1g,
+    )
+    command = transcoder_module._build_ffmpeg_command(
+        "ffmpeg",
+        plan.source_path,
+        plan.source_path.with_suffix(plan.output_extension),
+        plan,
+        TranscodeOptions(lossy_encoder="auto"),
+    )
+
+    assert plan.target == TranscodeTarget.AAC
+    assert plan.compatibility_profile == transcoder_module.LEGACY_AAC_STRICT_PROFILE
+    assert plan.cache_target_format == "aac:legacy_aac_strict"
+    assert plan.cache_bitrate_kbps == 160
+    assert ["-ar", "44100"] == command[command.index("-ar"):command.index("-ar") + 2]
+    assert ["-b:a", "160k"] == command[command.index("-b:a"):command.index("-b:a") + 2]
+    assert ["-aac_pns", "0"] == command[command.index("-aac_pns"):command.index("-aac_pns") + 2]
+    assert ["-aac_is", "0"] == command[command.index("-aac_is"):command.index("-aac_is") + 2]
+
+
+def test_other_ipod_generations_do_not_force_the_legacy_aac_profile(monkeypatch) -> None:
+    monkeypatch.setattr(
+        transcoder_module,
+        "_resolve_lossy_target",
+        lambda _options: TranscodeTarget.AAC,
+    )
+    monkeypatch.setattr(
+        transcoder_module,
+        "probe_audio",
+        lambda _path: AudioProperties(
+            sample_rate=44100,
+            channels=2,
+            codec_name="aac",
+            profile="LC",
+            probe_ok=True,
+        ),
+    )
+
+    device = SimpleNamespace(model_family="iPod Mini", generation="2nd Gen")
+
+    assert (
+        get_transcode_target(
+            "song.m4a",
+            compatibility_profile=transcoder_module.device_audio_compatibility_profile(device),
+        )
+        == TranscodeTarget.COPY
+    )
+
+
 def test_alac_m4a_is_not_forced_by_always_encode_lossy(monkeypatch) -> None:
     monkeypatch.setattr(transcoder_module, "_device_supports_alac", lambda: True)
     monkeypatch.setattr(

@@ -101,6 +101,7 @@ class SyncEngine:
             fpcalc_path=request.options.fpcalc_path,
             photo_sync_settings=context.photo_sync_settings,
             transcode_options=request.options.transcode_options,
+            device_info=request.device_info,
         )
 
         def on_progress(stage: str, current: int, total: int, message: str) -> None:

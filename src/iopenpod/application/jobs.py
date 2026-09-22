@@ -1261,6 +1261,7 @@ class SyncDiffRequest:
     fpcalc_path: str = ""
     photo_sync_settings: dict[str, bool] | None = None
     transcode_options: Any = None
+    device_info: Any = None
 
 
 class SyncDiffWorker(QThread):
@@ -1325,6 +1326,7 @@ class SyncDiffWorker(QThread):
                     photo_sync_settings=request.photo_sync_settings,
                     transcode_options=request.transcode_options,
                 ),
+                device_info=request.device_info,
                 progress_callback=on_engine_progress,
                 is_cancelled=self.isInterruptionRequested,
             )

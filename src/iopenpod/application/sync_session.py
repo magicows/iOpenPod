@@ -421,6 +421,7 @@ class SyncSessionController(QObject):
                 "fit_photo_thumbnails": settings.fit_photo_thumbnails,
             },
             transcode_options=build_transcode_options(settings),
+            device_info=device_session.identity,
             allowed_paths=allowed_paths,
             selected_playlist_paths=selected_playlist_paths,
         )

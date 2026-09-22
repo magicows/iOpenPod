@@ -93,6 +93,13 @@ class DeviceCapabilities:
     """Device supports Apple Lossless (ALAC) audio playback.
     False for iPod 1G–3G and Mini 1G (pre-firmware-update era hardware that
     received ALAC support only from 4th Gen photo/color / Mini 2G onwards)."""
+    audio_compatibility_profile: str = ""
+    """Optional audio encoding profile for devices with decoder quirks.
+
+    An empty value means that the normal codec/profile/bitrate checks are
+    sufficient.  Non-empty profiles are interpreted by the sync transcoder,
+    not by individual UI or device-writer modules.
+    """
     cover_art_formats: tuple[ArtworkFormat, ...] = ()
     """Supported cover-art thumbnail sizes.  Empty means no artwork."""
 
@@ -339,6 +346,7 @@ _FAMILY_GEN_CAPABILITIES: dict[tuple[str, str], DeviceCapabilities] = {
     ("iPod Mini", "1st Gen"): DeviceCapabilities(
         supports_artwork=False,
         supports_alac=True,
+        audio_compatibility_profile="legacy_aac_strict",
         music_dirs=6,
         db_version=0x13,
     ),

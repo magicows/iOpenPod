@@ -208,6 +208,8 @@ def _planned_transfer_presentation(item: Any) -> _TransferPresentation | None:
         reason = "Lossless audio is preserved in an iPod-compatible format."
     elif target_value.startswith("video_"):
         reason = "The source needs an iPod-compatible video format."
+    elif bool(getattr(plan, "compatibility_profile", "")):
+        reason = "This iPod has a legacy AAC decoder profile; the track will be converted before writing."
     else:
         reason = f"Your iPod sync encoding setting selects {target_label}."
 

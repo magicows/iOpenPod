@@ -57,7 +57,12 @@ from .planning_stages import scan_source_libraries
 from .source_identity import source_content_hash
 from .sync_playlist_files import normalize_sync_playlist_path
 from .track_identity import SyncTrackIdentityState, build_fingerprint_identity_plan
-from .transcoder import TranscodeOptions, TranscodePlan, resolve_transcode_plan
+from .transcoder import (
+    TranscodeOptions,
+    TranscodePlan,
+    requires_device_audio_rewrite,
+    resolve_transcode_plan,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +82,7 @@ def _fingerprint_worker_count(sync_workers: int, tracks: list[PCTrack]) -> int:
 def estimate_transcode_size(
     pc_track: PCTrack,
     options: TranscodeOptions | None = None,
+    device_info: object | None = None,
 ) -> int:
     """Estimate the size of a file after transcode, based on metadata and settings.
 
@@ -86,19 +92,22 @@ def estimate_transcode_size(
 
     Returns the estimated bytes on the iPod after transcode.
     """
-    plan, estimated_size = resolve_track_transcode_plan(pc_track, options)
+    plan, estimated_size = resolve_track_transcode_plan(pc_track, options, device_info=device_info)
     return estimated_size
 
 
 def resolve_track_transcode_plan(
     pc_track: PCTrack,
     options: TranscodeOptions | None = None,
+    *,
+    device_info: object | None = None,
 ) -> tuple[TranscodePlan, int]:
     """Resolve transfer policy and estimated output size for a PC track."""
     plan = resolve_transcode_plan(
         pc_track.path,
         is_spoken_content=pc_track.is_podcast or pc_track.is_audiobook,
         options=options,
+        device_info=device_info,
     )
     estimated_size = plan.estimate_output_size(
         source_size=pc_track.size,
@@ -210,6 +219,7 @@ class FingerprintDiffEngine:
         fpcalc_path: str = "",
         photo_sync_settings: dict[str, bool] | None = None,
         transcode_options: TranscodeOptions | None = None,
+        device_info: object | None = None,
     ):
         self.pc_library = pc_library
         self.ipod_path = Path(ipod_path)
@@ -219,6 +229,7 @@ class FingerprintDiffEngine:
         self.fpcalc_path = fpcalc_path
         self.photo_sync_settings = photo_sync_settings
         self.transcode_options = transcode_options or TranscodeOptions()
+        self.device_info = device_info
         self.mapping_manager = MappingManager(ipod_path)
 
     # ── Public API ──────────────────────────────────────────────────────────
@@ -622,6 +633,7 @@ class FingerprintDiffEngine:
                 transcode_plan, estimated_size = resolve_track_transcode_plan(
                     pc_track,
                     self.transcode_options,
+                    device_info=self.device_info,
                 )
                 plan.to_add.append(SyncItem(
                     action=SyncAction.ADD_TO_IPOD,
@@ -646,6 +658,7 @@ class FingerprintDiffEngine:
                 transcode_plan, estimated_size = resolve_track_transcode_plan(
                     pc_track,
                     self.transcode_options,
+                    device_info=self.device_info,
                 )
                 plan.to_add.append(SyncItem(
                     action=SyncAction.ADD_TO_IPOD,
@@ -677,6 +690,7 @@ class FingerprintDiffEngine:
                 transcode_plan, estimated_size = resolve_track_transcode_plan(
                     pc_track,
                     self.transcode_options,
+                    device_info=self.device_info,
                 )
                 plan.to_add.append(SyncItem(
                     action=SyncAction.ADD_TO_IPOD,
@@ -1883,12 +1897,25 @@ class FingerprintDiffEngine:
     ) -> None:
         track_name = self._track_description_name(pc_track)
 
-        # File change: size+mtime gate
-        if self._source_file_changed(pc_track, matched_entry):
-            transcode_plan, estimated_size = resolve_track_transcode_plan(
-                pc_track,
-                self.transcode_options,
+        transcode_plan, estimated_size = resolve_track_transcode_plan(
+            pc_track,
+            self.transcode_options,
+            device_info=self.device_info,
+        )
+        compatibility_rewrite = (
+            bool(transcode_plan.compatibility_profile)
+            and requires_device_audio_rewrite(
+                pc_track.path,
+                transcode_plan.compatibility_profile,
             )
+        )
+
+        # File change: size+mtime gate
+        source_changed = self._source_file_changed(pc_track, matched_entry)
+        if source_changed or compatibility_rewrite:
+            description = f"File changed: {track_name}"
+            if compatibility_rewrite and not source_changed:
+                description = f"Compatibility conversion: {track_name}"
             plan.to_update_file.append(SyncItem(
                 action=SyncAction.UPDATE_FILE,
                 fingerprint=fingerprint,
@@ -1897,7 +1924,7 @@ class FingerprintDiffEngine:
                 ipod_track=ipod_track,
                 estimated_size=estimated_size,
                 transcode_plan=transcode_plan,
-                description=f"File changed: {track_name}",
+                description=description,
             ))
             plan.storage.bytes_to_update += estimated_size
 
