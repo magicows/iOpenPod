@@ -11,9 +11,15 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/johngibbons)
 
-iOpenPod is a free, cross-platform iPod manager and iTunes alternative for Linux, macOS, and Windows enabling FLAC to ALAC auto-conversion, iTunesDB metadata editing, and native podcast syncing. Built on Python and PyQt6, it allows you to browse and edit your iPod library, sync media from your PC, and seamlessly preserve iPod-specific database behaviors.
+iOpenPod is a free, cross-platform iPod manager and iTunes alternative for Linux, macOS, and Windows enabling FLAC to ALAC auto-conversion, iTunesDB metadata editing, and native podcast syncing. Built on Python and PyQt6, it allows you to browse and edit your iPod library, sync media from your PC, and preserve iPod-specific database behaviors.
 
-This branch also adds built-in tools for metadata repair, video downloads, and Tidal video syncing. Each tool feeds completed media into the normal iOpenPod sync workflow.
+This fork adds built-in tools for metadata repair, video downloads, and Tidal video syncing. Each tool feeds completed media into the iOpenPod sync workflow.
+
+## About this fork
+
+This repository is a fork of [iOpenPod](https://github.com/TheRealSavi/iOpenPod). The upstream project remains the reference for the original application and its releases.
+
+This fork keeps the upstream iPod management code and adds the built-in tools, plugin layout, and device-specific AAC compatibility handling described below. It retains the original project's MIT license and attribution.
 
 ![Album Browser](docs/screenshots/hero.webp)
 
