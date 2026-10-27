@@ -121,11 +121,17 @@ class LibraryWorkspace(QObject):
         self._revision = 0
         self._next_id = -1
         self._locked = False
+        self._requires_review = False
         self.saved_playlist_ids: dict[int, int] | None = None
 
     @property
     def locked(self) -> bool:
         return self._locked
+
+    @property
+    def requires_review(self) -> bool:
+        """Keep explicitly reviewed tool edits out of automatic publication."""
+        return self._requires_review
 
     def set_locked(self, locked: bool) -> None:
         """Hold edits during a physical commit, without changing the edit revision."""
@@ -709,6 +715,7 @@ class LibraryWorkspace(QObject):
         *,
         artwork: TrackArtworkEdit | None = None,
         media_type: MediaType | None = None,
+        require_review: bool = False,
     ) -> None:
         """Validate metadata, classification, and artwork before one reversible edit."""
         self.require_revision(expected)
@@ -818,6 +825,7 @@ class LibraryWorkspace(QObject):
             }
 
         if any(track != self._tracks[key] for key, track in replacements.items()):
+            self._requires_review = self._requires_review or require_review
             self._tracks.update(replacements)
             if new_asset is not None:
                 self._artwork_assets[new_asset.artwork_id] = new_asset
@@ -944,6 +952,7 @@ class LibraryWorkspace(QObject):
                 "Photo Album creation requires a non-master unsigned 8-bit type."
             )
         self._generation += 1
+        self._requires_review = False
         self.saved_playlist_ids = saved_playlist_ids
         self._snapshot = snapshot
         self._artwork_assets.clear()

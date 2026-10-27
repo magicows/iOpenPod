@@ -70,6 +70,7 @@ dependencies = [
     "winrt-windows-media-interop>=3.2.1,<4 ; sys_platform == 'win32'",
     "winrt-windows-services-store>=3.2.1,<4 ; sys_platform == 'win32'",
     "winrt-windows-storage-streams>=3.2.1,<4 ; sys_platform == 'win32'",
+    "yt-dlp[default]>=2026.10.26",
 ]
 
 classifiers = [

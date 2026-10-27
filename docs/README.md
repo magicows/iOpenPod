@@ -1,5 +1,8 @@
 # Documentation
 
+- [Metadata repair and Video Sync](fork-media-tools.md) — tools carried over into
+  the fork, with draft previews and ordinary Sync review.
+
 - [Scrobbling](scrobbling.md) — Last.fm and ListenBrainz setup, Sync behavior,
   delivery receipts, and API references.
 

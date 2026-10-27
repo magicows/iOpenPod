@@ -157,7 +157,7 @@ class LibraryWriteController(QObject):
 
     @property
     def draft_all_changes(self) -> bool:
-        return self._settings.get(DRAFT_ALL_CHANGES)
+        return self._settings.get(DRAFT_ALL_CHANGES) or self._workspace.requires_review
 
     @Slot(str, object)
     def _setting_changed(self, key: str, _value: object) -> None:

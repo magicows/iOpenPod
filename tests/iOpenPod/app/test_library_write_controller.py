@@ -132,6 +132,45 @@ def manual_settings() -> SettingsService:
     return settings
 
 
+def test_review_required_batch_never_auto_saves_or_changes_the_global_preference(
+    session: tuple[DeviceCoordinator, DeviceController, LibraryWorkspace, Path],
+) -> None:
+    coordinator, devices, workspace, database = session
+    settings = SettingsService(GlobalSettingsStore(), DeviceSettingsStore())
+    controller = LibraryWriteController(coordinator, workspace, devices, settings)
+    original = database.read_bytes()
+    track = workspace.tracks[0]
+    try:
+        workspace.apply_track_edits(
+            (
+                TrackUpdate(
+                    track.track_id, (TrackFieldEdit("title", "Reviewed repair"),)
+                ),
+            ),
+            workspace.edit_revision,
+            require_review=True,
+        )
+        APPLICATION.processEvents()
+        assert controller.draft_all_changes
+        assert not settings.get(DRAFT_ALL_CHANGES)
+        assert controller.state is PreparationState.IDLE
+        assert database.read_bytes() == original
+        controller.prepare()
+        wait_for(lambda: controller.state is PreparationState.READY)
+        APPLICATION.processEvents()
+        assert database.read_bytes() == original
+        controller.save()
+        wait_for(lambda: controller.state is PreparationState.SAVED)
+        assert not workspace.requires_review and not workspace.dirty
+        assert not settings.get(DRAFT_ALL_CHANGES)
+        assert (
+            IPodLibrary.parse(database.read_bytes()).snapshot.tracks[0].title
+            == "Reviewed repair"
+        )
+    finally:
+        controller.shutdown()
+
+
 @pytest.mark.parametrize("automatic", [False, True])
 def test_successful_save_does_not_offer_cleanup_after_reload(
     session: tuple[DeviceCoordinator, DeviceController, LibraryWorkspace, Path],

@@ -46,6 +46,8 @@ class _NavigationDefinition:
 _MAINTENANCE = (
     _NavigationDefinition(PageId.BACKUPS, "box"),
     _NavigationDefinition(PageId.NORMALIZE_TAGS, "check-circle"),
+    _NavigationDefinition(PageId.TRACK_REPAIR, "check-circle"),
+    _NavigationDefinition(PageId.VIDEO_SYNC, "video"),
 )
 
 _LIBRARY = (

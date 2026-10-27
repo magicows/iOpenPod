@@ -106,6 +106,8 @@ from iOpenPod.GUI.pages.podcast_page import PodcastPage
 from iOpenPod.GUI.pages.settings_page import SettingsPage
 from iOpenPod.GUI.pages.synesthesia_page import SynesthesiaPage
 from iOpenPod.GUI.pages.track_page import TrackPage
+from iOpenPod.GUI.pages.track_repair_page import TrackRepairPage
+from iOpenPod.GUI.pages.video_sync_page import VideoSyncPage
 from iOpenPod.GUI.presentation.artwork_provider import ArtworkPixmapProvider
 from iOpenPod.GUI.presentation.desktop_services import open_desktop_url
 from iOpenPod.GUI.presentation.i18n.text import (
@@ -497,7 +499,14 @@ class MainWindow(QMainWindow):
         )
         exit_fullscreen.setAutoRepeat(False)
         exit_fullscreen.activated.connect(self._exit_synesthesia_fullscreen)
+        self._track_repair_page = TrackRepairPage(
+            context.library_workspace, self._pages
+        )
+        self._video_sync_page = VideoSyncPage(context, self._pages)
+        self._video_sync_page.syncRequested.connect(self._sync_cached_videos)
         self._page_widgets: dict[PageId, QWidget] = {
+            PageId.TRACK_REPAIR: self._track_repair_page,
+            PageId.VIDEO_SYNC: self._video_sync_page,
             PageId.ALBUMS: self._library_page,
             PageId.ARTISTS: artists_page,
             PageId.GENRES: genres_page,
@@ -536,6 +545,8 @@ class MainWindow(QMainWindow):
         self._pages.addWidget(self._backup_page)
         self._pages.addWidget(self._synesthesia_page)
         self._pages.addWidget(self._settings_page)
+        self._pages.addWidget(self._track_repair_page)
+        self._pages.addWidget(self._video_sync_page)
 
         library_layout.addWidget(self._sidebar)
         library_layout.addWidget(self._pages, stretch=1)
@@ -1188,6 +1199,8 @@ class MainWindow(QMainWindow):
         self._exit_synesthesia_fullscreen()
         self._sync_controller.shutdown()
         self._normalization.shutdown()
+        self._track_repair_page.shutdown()
+        self._video_sync_page.shutdown()
         self._export_controller.shutdown()
         self._chaptered_controller.shutdown()
         self._artwork_provider.shutdown()
@@ -1723,6 +1736,23 @@ class MainWindow(QMainWindow):
             else source_text("Finding media in the selected folders…")
         )
         self.retranslate_ui()
+
+    def _sync_cached_videos(self, value: object) -> None:
+        if not isinstance(value, tuple) or not value:
+            return
+        paths = tuple(item for item in value if isinstance(item, Path))
+        if len(paths) != len(value):
+            return
+        if not self._can_drop_host_media():
+            QMessageBox.information(
+                self,
+                self.tr("Video Sync"),
+                self.tr(
+                    "Select an Active iPod and finish the current operation before reviewing video sync."
+                ),
+            )
+            return
+        self._start_host_sync((), files=tuple(HostPath(path) for path in paths))
 
     def _exit_sync_workspace(self) -> None:
         if self._workspaces.currentWidget() is not self._sync_workspace:

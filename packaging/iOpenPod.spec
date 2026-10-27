@@ -27,6 +27,8 @@ for package in ("iOpenPod", "device_registry", "iPodDB", "storage", "tzdata"):
     datas += collect_data_files(package)
 datas += copy_metadata("iOpenPod")
 datas += copy_metadata("keyring")
+datas += collect_data_files("yt_dlp_ejs")
+datas += copy_metadata("yt-dlp")
 # librosa/lazy_loader need their on-disk stubs, even when code lives in PYZ.
 datas += collect_data_files(
     "librosa", include_py_files=True,
@@ -44,6 +46,9 @@ hiddenimports = collect_submodules("librosa") + collect_submodules("tzdata") + c
     "Crypto.PublicKey._ed25519",
     "Crypto.PublicKey._ed448",
 ]
+# Video Sync loads the downloader lazily; retain extractors and postprocessors.
+hiddenimports += collect_submodules("yt_dlp")
+hiddenimports += collect_submodules("yt_dlp_ejs")
 if sys.platform == "win32":
     # Media-key adapters intentionally load OS bindings only when needed.
     hiddenimports += collect_submodules("winrt") + [

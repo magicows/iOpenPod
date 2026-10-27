@@ -2495,6 +2495,14 @@
         <source>Details</source>
         <translation>Detalles</translation>
     </message>
+    <message>
+        <source>Video Sync</source>
+        <translation>Sincronizar vídeos</translation>
+    </message>
+    <message>
+        <source>Select an Active iPod and finish the current operation before reviewing video sync.</source>
+        <translation>Selecciona un iPod activo y termina la operación actual antes de revisar la sincronización de vídeos.</translation>
+    </message>
 </context>
 <context>
     <name>MediaFoldersDialog</name>
@@ -3382,6 +3390,14 @@
     <message>
         <source>Genius</source>
         <translation>Genius</translation>
+    </message>
+    <message>
+        <source>Repair Metadata</source>
+        <translation>Reparar metadatos</translation>
+    </message>
+    <message>
+        <source>Video Sync</source>
+        <translation>Sincronizar vídeos</translation>
     </message>
 </context>
 <context>
@@ -8026,6 +8042,101 @@ Playlists: %3</translation>
     </message>
 </context>
 <context>
+    <name>TrackRepairPage</name>
+    <message>
+        <source>Repair Metadata</source>
+        <translation>Reparar metadatos</translation>
+    </message>
+    <message>
+        <source>Find missing track numbers, disc numbers and credits. Scanning sends album and artist names to the selected service. Review suggestions, then apply selected tracks to your Library Draft.</source>
+        <translation>Busca números de pista, números de disco y créditos que falten. La búsqueda envía los nombres de álbumes y artistas al servicio seleccionado. Revisa las sugerencias y aplica las pistas seleccionadas al borrador de la biblioteca.</translation>
+    </message>
+    <message>
+        <source>Metadata service</source>
+        <translation>Servicio de metadatos</translation>
+    </message>
+    <message>
+        <source>Replace existing values</source>
+        <translation>Reemplazar valores existentes</translation>
+    </message>
+    <message>
+        <source>Off by default: only fill missing fields. When enabled, a unique existing disc and track position may also identify a recording.</source>
+        <translation>Desactivado por defecto: solo rellena los campos vacíos. Si se activa, una posición única de disco y pista existente también puede identificar una grabación.</translation>
+    </message>
+    <message>
+        <source>Ignore version annotations</source>
+        <translation>Ignorar anotaciones de versión</translation>
+    </message>
+    <message>
+        <source>Match titles without labels such as Remastered or Live. Ambiguous titles are skipped unless a filename identifies their track position.</source>
+        <translation>Compara títulos sin etiquetas como Remastered o Live. Los títulos ambiguos se omiten salvo que un nombre de archivo identifique su posición.</translation>
+    </message>
+    <message>
+        <source>Scan Library</source>
+        <translation>Analizar biblioteca</translation>
+    </message>
+    <message>
+        <source>Cancel scan</source>
+        <translation>Cancelar análisis</translation>
+    </message>
+    <message>
+        <source>Load an iPod Library, then scan for suggestions.</source>
+        <translation>Carga una biblioteca de iPod y busca sugerencias.</translation>
+    </message>
+    <message>
+        <source>Filter by track, album or suggested value…</source>
+        <translation>Filtrar por pista, álbum o valor sugerido…</translation>
+    </message>
+    <message>
+        <source>Filter repair suggestions</source>
+        <translation>Filtrar sugerencias de reparación</translation>
+    </message>
+    <message>
+        <source>Track</source>
+        <translation>Pista</translation>
+    </message>
+    <message>
+        <source>Album</source>
+        <translation>Álbum</translation>
+    </message>
+    <message>
+        <source>Suggested changes</source>
+        <translation>Cambios sugeridos</translation>
+    </message>
+    <message>
+        <source>Match evidence</source>
+        <translation>Criterio de coincidencia</translation>
+    </message>
+    <message>
+        <source>Metadata repair suggestions</source>
+        <translation>Sugerencias de reparación de metadatos</translation>
+    </message>
+    <message>
+        <source>Album lookup warnings</source>
+        <translation>Advertencias de búsqueda de álbumes</translation>
+    </message>
+    <message>
+        <source>Select visible tracks</source>
+        <translation>Seleccionar pistas visibles</translation>
+    </message>
+    <message>
+        <source>Apply selected to Draft</source>
+        <translation>Aplicar selección al borrador</translation>
+    </message>
+    <message>
+        <source>The Library changed. Scan again to get current suggestions.</source>
+        <translation>La biblioteca ha cambiado. Vuelve a analizarla para obtener sugerencias actuales.</translation>
+    </message>
+    <message>
+        <source>Suggested repairs for %1 track(s). Select tracks to apply; existing values are preserved unless replacement was enabled.</source>
+        <translation>Reparaciones sugeridas para %1 pista(s). Selecciona las pistas que quieras aplicar; los valores existentes se conservan salvo que se haya activado su reemplazo.</translation>
+    </message>
+    <message>
+        <source>Repairs staged. Use Review Changes to save them to your iPod. Scan again for remaining repairs.</source>
+        <translation>Reparaciones preparadas. Usa Revisar cambios para guardarlas en el iPod. Vuelve a analizar para buscar reparaciones pendientes.</translation>
+    </message>
+</context>
+<context>
     <name>TrackTable</name>
     <message>
         <source>Core Metadata</source>
@@ -8843,6 +8954,105 @@ Playlists: %3</translation>
     <message>
         <source>Update check or installation unavailable: %1. Retry in 30 seconds.</source>
         <translation>La búsqueda de actualizaciones o la instalación no está disponible: %1. Vuelve a intentarlo en 30 segundos.</translation>
+    </message>
+</context>
+<context>
+    <name>VideoSyncPage</name>
+    <message>
+        <source>Video Sync</source>
+        <translation>Sincronizar vídeos</translation>
+    </message>
+    <message>
+        <source>Download a video and prepare it for your selected iPod. Choose cached videos below to open the usual sync review before anything is written to the device.</source>
+        <translation>Descarga un vídeo y prepáralo para el iPod seleccionado. Elige vídeos guardados abajo para abrir la revisión habitual de sincronización antes de escribir en el dispositivo.</translation>
+    </message>
+    <message>
+        <source>Paste a video URL…</source>
+        <translation>Pega una URL de vídeo…</translation>
+    </message>
+    <message>
+        <source>Video URL</source>
+        <translation>URL del vídeo</translation>
+    </message>
+    <message>
+        <source>Video category</source>
+        <translation>Categoría del vídeo</translation>
+    </message>
+    <message>
+        <source>TV out resolution</source>
+        <translation>Resolución para salida de TV</translation>
+    </message>
+    <message>
+        <source>Off: fit your iPod screen. On: use the selected iPod&apos;s full supported video resolution.</source>
+        <translation>Desactivado: ajustar a la pantalla del iPod. Activado: usar la resolución de vídeo completa que admite el iPod seleccionado.</translation>
+    </message>
+    <message>
+        <source>Add to download queue</source>
+        <translation>Añadir a la cola de descargas</translation>
+    </message>
+    <message>
+        <source>Video download queue</source>
+        <translation>Cola de descargas de vídeos</translation>
+    </message>
+    <message>
+        <source>Cancel downloads</source>
+        <translation>Cancelar descargas</translation>
+    </message>
+    <message>
+        <source>Retry selected</source>
+        <translation>Reintentar selección</translation>
+    </message>
+    <message>
+        <source>Downloaded videos</source>
+        <translation>Vídeos descargados</translation>
+    </message>
+    <message>
+        <source>Cached videos available for sync</source>
+        <translation>Vídeos guardados disponibles para sincronizar</translation>
+    </message>
+    <message>
+        <source>Refresh files</source>
+        <translation>Actualizar archivos</translation>
+    </message>
+    <message>
+        <source>Delete selected downloads</source>
+        <translation>Eliminar descargas seleccionadas</translation>
+    </message>
+    <message>
+        <source>Review sync to iPod</source>
+        <translation>Revisar sincronización con iPod</translation>
+    </message>
+    <message>
+        <source>Select a video-capable iPod before downloading.</source>
+        <translation>Selecciona un iPod compatible con vídeo antes de descargar.</translation>
+    </message>
+    <message>
+        <source>Queued: </source>
+        <translation>En cola: </translation>
+    </message>
+    <message>
+        <source>Ready: </source>
+        <translation>Listo: </translation>
+    </message>
+    <message>
+        <source>Cancelled: </source>
+        <translation>Cancelado: </translation>
+    </message>
+    <message>
+        <source>Delete downloads</source>
+        <translation>Eliminar descargas</translation>
+    </message>
+    <message>
+        <source>Delete the selected cached videos from this computer? Copies on your iPod remain unchanged.</source>
+        <translation>¿Eliminar los vídeos guardados seleccionados de este ordenador? Las copias del iPod no se modificarán.</translation>
+    </message>
+    <message>
+        <source>Choose a video URL to begin. Downloads stay available between app launches.</source>
+        <translation>Introduce una URL de vídeo para empezar. Las descargas se conservan al volver a abrir la aplicación.</translation>
+    </message>
+    <message>
+        <source>Select a video-capable iPod to prepare downloads. Cached videos remain available below.</source>
+        <translation>Selecciona un iPod compatible con vídeo para preparar las descargas. Los vídeos guardados siguen disponibles abajo.</translation>
     </message>
 </context>
 <context>
@@ -11828,6 +12038,18 @@ Playlists: %3</translation>
     <message>
         <source>tracks</source>
         <translation>pistas</translation>
+    </message>
+    <message>
+        <source>Cancelled.</source>
+        <translation>Cancelado.</translation>
+    </message>
+    <message>
+        <source>Finished.</source>
+        <translation>Finalizado.</translation>
+    </message>
+    <message>
+        <source>Working…</source>
+        <translation>Procesando…</translation>
     </message>
 </context>
 <context>

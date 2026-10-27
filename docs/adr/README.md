@@ -1,5 +1,7 @@
 # Architectural Decision Records
 
+- [ADR-0202: Port repair and video tools through existing workflows](0202-port-repair-and-video-tools-through-existing-workflows.md)
+
 An Architectural Decision Record (ADR) captures a durable decision, the context in
 which it was made, and its consequences. ADRs explain why the architecture has its
 current shape; they do not replace implementation documentation.

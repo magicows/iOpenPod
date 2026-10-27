@@ -25,6 +25,8 @@ class PageId(StrEnum):
     SYNESTHESIA = "synesthesia"
     BACKUPS = "backups"
     NORMALIZE_TAGS = "normalize-tags"
+    TRACK_REPAIR = "track-repair"
+    VIDEO_SYNC = "video-sync"
     SETTINGS = "settings"
 
 
@@ -47,6 +49,8 @@ _PAGE_LABEL_SOURCES = cast(
         PageId.SYNESTHESIA: QT_TRANSLATE_NOOP("Navigation", "Synesthesia"),
         PageId.BACKUPS: QT_TRANSLATE_NOOP("Navigation", "Backups"),
         PageId.NORMALIZE_TAGS: QT_TRANSLATE_NOOP("Navigation", "Normalize Tags"),
+        PageId.TRACK_REPAIR: QT_TRANSLATE_NOOP("Navigation", "Repair Metadata"),
+        PageId.VIDEO_SYNC: QT_TRANSLATE_NOOP("Navigation", "Video Sync"),
         PageId.SETTINGS: QT_TRANSLATE_NOOP("Navigation", "Settings"),
     },
 )
